@@ -1,0 +1,3 @@
+backend/env
+backend/flaskr/__pycache__
+.vscode
