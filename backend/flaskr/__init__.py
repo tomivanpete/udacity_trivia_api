@@ -16,17 +16,29 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
-
+  CORS(app, resources={r'/*': {'origins': '*'}})
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
-
+  @app.after_request
+  def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
+    return response
   '''
   @TODO: 
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
+  @app.route('/categories')
+  def get_categories():
+    categories = Category.query.order_by('id').all()
+    formatted_categories = [category.format() for category in categories]
 
+    return jsonify({
+      'success': True,
+      'categories': formatted_categories,
+    })
 
   '''
   @TODO: 
@@ -40,7 +52,20 @@ def create_app(test_config=None):
   ten questions per page and pagination at the bottom of the screen for three pages.
   Clicking on the page numbers should update the questions. 
   '''
+  @app.route('/categories/<int:category_id>/questions')
+  def get_questions(category_id):
+    page = request.args.get('page', 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+    current_category = Category.query.filter(Category.id == category_id).one_or_none()
+    questions = Question.query.filter(Question.category == category_id).all()
+    formatted_questions = [question.format() for question in questions]
 
+    return jsonify({
+      'success': True,
+      'categories': formatted_questions[start:end],
+      'total_categories': len(questions)
+    })
   '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
@@ -98,6 +123,45 @@ def create_app(test_config=None):
   Create error handlers for all expected errors 
   including 404 and 422. 
   '''
+  @app.errorhandler(400)
+  def bad_request(error):
+    return jsonify({
+      'success': False,
+      'error': 400,
+      'message': 'Bad request'
+    }), 400
+  
+  @app.errorhandler(404)
+  def not_found(error):
+    return jsonify({
+      'success': False,
+      'error': 404,
+      'message': 'Not Found'
+    }), 404
+  
+  @app.errorhandler(405)
+  def method_not_allowed(error):
+    return jsonify({
+      'success': False,
+      'error': 405,
+      'message': 'Method not allowed'
+    }), 405
+  
+  @app.errorhandler(422)
+  def unprocessable_entity(error):
+    return jsonify({
+      'success': False,
+      'error': 422,
+      'message': 'Unprocessable entity'
+    }), 422
+
+  @app.errorhandler(500)
+  def server_error(error):
+    return jsonify({
+      'success': False,
+      'error': 500,
+      'message': 'Internal server error'
+    }), 500
   
   return app
 
