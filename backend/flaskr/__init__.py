@@ -3,6 +3,7 @@ from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
+import sys
 
 from models import setup_db, Question, Category
 
@@ -17,14 +18,16 @@ def create_app(test_config=None):
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
   CORS(app, resources={r'/*': {'origins': '*'}})
+
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
   @app.after_request
   def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
     return response
+  
   '''
   @TODO: 
   Create an endpoint to handle GET requests 
@@ -33,7 +36,7 @@ def create_app(test_config=None):
   @app.route('/categories')
   def get_categories():
     categories = Category.query.order_by('id').all()
-    formatted_categories = [category.format() for category in categories]
+    formatted_categories = {category.id : category.type for category in categories}
 
     return jsonify({
       'success': True,
@@ -65,13 +68,13 @@ def create_app(test_config=None):
     formatted_questions = [question.format() for question in questions]
 
     categories = Category.query.all()
-    formatted_categories = [category.format() for category in categories]
+    formatted_categories = {category.id : category.type for category in categories}
 
     return jsonify({
       'success': True,
       'questions': formatted_questions[start:end],
       'categories': formatted_categories,
-      'current_category': formatted_categories[0],
+      'current_category': None,
       'total_questions': len(questions)
     })
   '''
@@ -115,6 +118,11 @@ def create_app(test_config=None):
         difficulty=request_json['difficulty']
       )
       new_question.insert()
+
+      return jsonify({
+        'success': True,
+        'created': new_question.id
+      })
     except:
       abort(400)
 
@@ -151,7 +159,18 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
+  @app.route('/categories/<int:category_id>/questions')
+  def get_questions_by_category(category_id):
+    try:
+      questions = Question.query.filter(Question.category == category_id).all()
+      formatted_questions = [question.format() for question in questions]
 
+      return jsonify({
+        'success': True,
+        'questions': formatted_questions
+      })
+    except:
+      abort(404)
 
   '''
   @TODO: 
@@ -164,6 +183,29 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
+  @app.route('/quizzes', methods=['POST'])
+  def play_quiz():
+    request_json = request.get_json()
+    previous_questions = request_json['previous_questions']
+    quiz_category_id = request_json['quiz_category']['id']
+
+    if quiz_category_id == 0:
+      questions = Question.query.all()
+    else:
+      questions = Question.query.filter(Question.category == quiz_category_id).all()
+    formatted_questions = [question.format() for question in questions]
+
+    if len(previous_questions) == 0:
+      return jsonify({'question': random.choice(formatted_questions)})
+    else:
+      for id in previous_questions:
+        for question in formatted_questions:
+          if id == question['id']:
+            formatted_questions.remove(question)
+      if len(formatted_questions) == 0:
+        return jsonify({'question': None})
+      else:
+        return jsonify({'question': random.choice(formatted_questions)})
 
   '''
   @TODO: 
