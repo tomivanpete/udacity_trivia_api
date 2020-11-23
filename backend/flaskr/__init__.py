@@ -52,19 +52,27 @@ def create_app(test_config=None):
   ten questions per page and pagination at the bottom of the screen for three pages.
   Clicking on the page numbers should update the questions. 
   '''
-  @app.route('/categories/<int:category_id>/questions')
-  def get_questions(category_id):
+  @app.route('/questions')
+  def get_questions():
     page = request.args.get('page', 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE
-    current_category = Category.query.filter(Category.id == category_id).one_or_none()
-    questions = Question.query.filter(Question.category == category_id).all()
+    # current_category = Category.query.filter(Category.id == category_id).one_or_none()
+    # if current_category is None:
+    #   abort(404)
+
+    questions = Question.query.all()
     formatted_questions = [question.format() for question in questions]
+
+    categories = Category.query.all()
+    formatted_categories = [category.format() for category in categories]
 
     return jsonify({
       'success': True,
-      'categories': formatted_questions[start:end],
-      'total_categories': len(questions)
+      'questions': formatted_questions[start:end],
+      'categories': formatted_categories,
+      'current_category': formatted_categories[0],
+      'total_questions': len(questions)
     })
   '''
   @TODO: 
@@ -73,6 +81,18 @@ def create_app(test_config=None):
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
+  @app.route('/questions/<int:question_id>', methods=['DELETE'])
+  def delete_question(question_id):
+    try:
+      question = Question.query.filter(Question.id == question_id)
+      question.delete()
+
+      return jsonify({
+        'success': True,
+        'deleted': question_id
+      })
+    except:
+      abort(404)
 
   '''
   @TODO: 
@@ -84,6 +104,20 @@ def create_app(test_config=None):
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
   '''
+  @app.route('/questions', methods=['POST'])
+  def create_question():
+    try:
+      request_json = request.get_json()
+      new_question = Question(
+        question=request_json['question'],
+        answer=request_json['answer'],
+        category=request_json['category'],
+        difficulty=request_json['difficulty']
+      )
+      new_question.insert()
+    except:
+      abort(400)
+
 
   '''
   @TODO: 
@@ -95,6 +129,19 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
+  @app.route('/questions/search', methods=['POST'])
+  def search_questions():
+    try:
+      search_term = request.get_json()['searchTerm']
+      questions = Question.query.filter(Question.question.ilike('%'+search_term+'%'))
+      formatted_questions = [question.format() for question in questions]
+
+      return jsonify({
+        'success': True,
+        'questions': formatted_questions
+      })
+    except:
+      abort(400)
 
   '''
   @TODO: 
