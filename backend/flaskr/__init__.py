@@ -17,7 +17,7 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
-  CORS(app, resources={r'/*': {'origins': '*'}})
+  CORS(app, resources={r'/api/*': {'origins': '*'}})
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
@@ -33,15 +33,18 @@ def create_app(test_config=None):
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
-  @app.route('/categories')
+  @app.route('/api/categories')
   def get_categories():
-    categories = Category.query.order_by('id').all()
-    formatted_categories = {category.id : category.type for category in categories}
+    try:
+      categories = Category.query.order_by('id').all()
+      formatted_categories = {category.id : category.type for category in categories}
 
-    return jsonify({
-      'success': True,
-      'categories': formatted_categories,
-    })
+      return jsonify({
+        'success': True,
+        'categories': formatted_categories,
+      })
+    except:
+      abort(500)
 
   '''
   @TODO: 
@@ -55,28 +58,33 @@ def create_app(test_config=None):
   ten questions per page and pagination at the bottom of the screen for three pages.
   Clicking on the page numbers should update the questions. 
   '''
-  @app.route('/questions')
+  @app.route('/api/questions')
   def get_questions():
-    page = request.args.get('page', 1, type=int)
-    start = (page - 1) * QUESTIONS_PER_PAGE
-    end = start + QUESTIONS_PER_PAGE
-    # current_category = Category.query.filter(Category.id == category_id).one_or_none()
-    # if current_category is None:
-    #   abort(404)
+    try:
+      page = request.args.get('page', 1, type=int)
+      start = (page - 1) * QUESTIONS_PER_PAGE
+      end = start + QUESTIONS_PER_PAGE
 
-    questions = Question.query.all()
-    formatted_questions = [question.format() for question in questions]
+      questions = Question.query.all()
+      formatted_questions = [question.format() for question in questions]
+      if start > len(formatted_questions):
+        raise IndexError
 
-    categories = Category.query.all()
-    formatted_categories = {category.id : category.type for category in categories}
+      categories = Category.query.all()
+      formatted_categories = {category.id : category.type for category in categories}
 
-    return jsonify({
-      'success': True,
-      'questions': formatted_questions[start:end],
-      'categories': formatted_categories,
-      'current_category': None,
-      'total_questions': len(questions)
-    })
+      return jsonify({
+        'success': True,
+        'questions': formatted_questions[start:end],
+        'categories': formatted_categories,
+        'current_category': None,
+        'total_questions': len(questions)
+      })
+    except IndexError:
+      abort(404)
+    except:
+      abort(500)
+
   '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
@@ -84,7 +92,7 @@ def create_app(test_config=None):
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
-  @app.route('/questions/<int:question_id>', methods=['DELETE'])
+  @app.route('/api/questions/<int:question_id>', methods=['DELETE'])
   def delete_question(question_id):
     try:
       question = Question.query.filter(Question.id == question_id)
@@ -107,24 +115,29 @@ def create_app(test_config=None):
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
   '''
-  @app.route('/questions', methods=['POST'])
+  @app.route('/api/questions', methods=['POST'])
   def create_question():
     try:
       request_json = request.get_json()
+      question = request_json['question']
+      answer = request_json['answer']
+      category = request_json['category']
+      difficulty = request_json['difficulty']
+
       new_question = Question(
-        question=request_json['question'],
-        answer=request_json['answer'],
-        category=request_json['category'],
-        difficulty=request_json['difficulty']
+        question=question,
+        answer=answer,
+        category=category,
+        difficulty=difficulty
       )
       new_question.insert()
 
       return jsonify({
         'success': True,
         'created': new_question.id
-      })
+      }), 201
     except:
-      abort(400)
+      abort(422)
 
 
   '''
@@ -137,10 +150,10 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
-  @app.route('/questions/search', methods=['POST'])
+  @app.route('/api/questions/search', methods=['POST'])
   def search_questions():
     try:
-      search_term = request.get_json()['searchTerm']
+      search_term = request.get_json().get('searchTerm', None)
       questions = Question.query.filter(Question.question.ilike('%'+search_term+'%'))
       formatted_questions = [question.format() for question in questions]
 
@@ -159,7 +172,7 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
-  @app.route('/categories/<int:category_id>/questions')
+  @app.route('/api/categories/<int:category_id>/questions')
   def get_questions_by_category(category_id):
     try:
       questions = Question.query.filter(Question.category == category_id).all()
@@ -183,29 +196,46 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
-  @app.route('/quizzes', methods=['POST'])
+  @app.route('/api/quizzes', methods=['POST'])
   def play_quiz():
-    request_json = request.get_json()
-    previous_questions = request_json['previous_questions']
-    quiz_category_id = request_json['quiz_category']['id']
+    try:
+      request_json = request.get_json()
+      previous_questions = request_json['previous_questions']
+      quiz_category_id = request_json['quiz_category']['id']
 
-    if quiz_category_id == 0:
-      questions = Question.query.all()
-    else:
-      questions = Question.query.filter(Question.category == quiz_category_id).all()
-    formatted_questions = [question.format() for question in questions]
-
-    if len(previous_questions) == 0:
-      return jsonify({'question': random.choice(formatted_questions)})
-    else:
-      for id in previous_questions:
-        for question in formatted_questions:
-          if id == question['id']:
-            formatted_questions.remove(question)
-      if len(formatted_questions) == 0:
-        return jsonify({'question': None})
+      # Category 0 should include questions from all existing categories
+      if quiz_category_id == 0:
+        questions = Question.query.all()
       else:
-        return jsonify({'question': random.choice(formatted_questions)})
+        questions = Question.query.filter(Question.category == quiz_category_id).all()
+      formatted_questions = [question.format() for question in questions]
+
+      # If there are no previous questions, then we can return a random choice from all available questions
+      if len(previous_questions) == 0:
+        return jsonify({
+          'success': True,
+          'question': random.choice(formatted_questions)
+          })
+      else:
+        # Remove previous questions from the selection of possible new questions
+        for id in previous_questions:
+          for question in formatted_questions:
+            if id == question['id']:
+              formatted_questions.remove(question)
+        # If all questions have been removed, then return None for question
+        if len(formatted_questions) == 0:
+          return jsonify({
+            'success': True,
+            'question': None
+            })
+        # Return a random choice from the remaining possible questions
+        else:
+          return jsonify({
+            'success': True,
+            'question': random.choice(formatted_questions)
+            })
+    except:
+      abort(400)
 
   '''
   @TODO: 
