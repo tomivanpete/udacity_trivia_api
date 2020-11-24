@@ -66,29 +66,179 @@ One note before you delve into your tasks: for each endpoint you are expected to
 8. Create a POST endpoint to get questions to play the quiz. This endpoint should take category and previous question parameters and return a random questions within the given category, if provided, and that is not one of the previous questions. 
 9. Create error handlers for all expected errors including 400, 404, 422 and 500. 
 
-REVIEW_COMMENT
-```
-This README is missing documentation of your endpoints. Below is an example for your endpoint to get all categories. Please use it as a reference for creating your documentation and resubmit your code. 
+## Endpoints
 
-Endpoints
-GET '/categories'
-GET ...
-POST ...
-DELETE ...
+#### Common Behavior
+- Each endpoint will return `{'success': true}` in the response body following successful processing of the request.
+- Each endpoint will return `{'success': false}` in the response body if a request fails, along with the appropriate standard status code.
 
-GET '/categories'
+#### GET `'/api/categories'`
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
 - Request Arguments: None
-- Returns: An object with a single key, categories, that contains a object of id: category_string key:value pairs. 
-{'1' : "Science",
-'2' : "Art",
-'3' : "Geography",
-'4' : "History",
-'5' : "Entertainment",
-'6' : "Sports"}
-
+- Returns: An object with a single key, `categories`, that contains a object of id: category_string key:value pairs. 
+```
+{
+  "categories": {
+    "1": "Science", 
+    "2": "Art", 
+    "3": "Geography", 
+    "4": "History", 
+    "5": "Entertainment", 
+    "6": "Sports"
+  }, 
+  "success": true
+}
 ```
 
+#### GET `'/api/questions'`
+- Fetches a dictionary of categories, the current category, and the total number of questions, and a list of all available questions. Pagination supported with 10 questions per page.
+- Request Arguments: `page` (optional)
+- Returns: An object with keys `categories`, `questions`, and `total_questions`.
+- Errors: 404 if the page sent in the request does not exist.
+```
+{
+  "categories": {
+    "1": "Science", 
+    "2": "Art", 
+    "3": "Geography", 
+    "4": "History", 
+    "5": "Entertainment", 
+    "6": "Sports"
+  }, 
+  "current_category": null, 
+  "questions": [
+    {
+      "answer": "Maya Angelou", 
+      "category": 4, 
+      "difficulty": 2, 
+      "id": 5, 
+      "question": "Whose autobiography is entitled 'I Know Why the Caged Bird Sings'?"
+    }, 
+    {
+      "answer": "Muhammad Ali", 
+      "category": 4, 
+      "difficulty": 1, 
+      "id": 9, 
+      "question": "What boxer's original name is Cassius Clay?"
+    }, 
+    {
+      "answer": "Apollo 13", 
+      "category": 5, 
+      "difficulty": 4, 
+      "id": 2, 
+      "question": "What movie earned Tom Hanks his third straight Oscar nomination, in 1996?"
+    }, 
+    {
+      "answer": "Tom Cruise", 
+      "category": 5, 
+      "difficulty": 4, 
+      "id": 4, 
+      "question": "What actor did author Anne Rice first denounce, then praise in the role of her beloved Lestat?"
+    }, 
+    {
+      "answer": "Edward Scissorhands", 
+      "category": 5, 
+      "difficulty": 3, 
+      "id": 6, 
+      "question": "What was the title of the 1990 fantasy directed by Tim Burton about a young man with multi-bladed appendages?"
+    }, 
+    {
+      "answer": "Brazil", 
+      "category": 6, 
+      "difficulty": 3, 
+      "id": 10, 
+      "question": "Which is the only team to play in every soccer World Cup tournament?"
+    }, 
+    {
+      "answer": "Uruguay", 
+      "category": 6, 
+      "difficulty": 4, 
+      "id": 11, 
+      "question": "Which country won the first ever soccer World Cup in 1930?"
+    }, 
+    {
+      "answer": "George Washington Carver", 
+      "category": 4, 
+      "difficulty": 2, 
+      "id": 12, 
+      "question": "Who invented Peanut Butter?"
+    }, 
+    {
+      "answer": "Lake Victoria", 
+      "category": 3, 
+      "difficulty": 2, 
+      "id": 13, 
+      "question": "What is the largest lake in Africa?"
+    }, 
+    {
+      "answer": "The Palace of Versailles", 
+      "category": 3, 
+      "difficulty": 3, 
+      "id": 14, 
+      "question": "In which royal palace would you find the Hall of Mirrors?"
+    }
+  ], 
+  "success": true, 
+  "total_questions": 19
+}
+```
+
+#### POST `'/api/questions'`
+- Creates a new question in the trivia app database according to the request body. 
+- Request Arguments: None
+- Returns: The id of the new question in the key `created` on success.
+- Errors: 400 if required fields are missing, 422 if incorrect data types. 
+```
+Request:
+{
+  "question": "Who served as Vice President during Franklin D. Roosevelt's first term in office?",
+  "answer": "Henry Wallace",
+  "category": 4,
+  "difficulty": 4
+}
+Response:
+{
+  "success": True,
+  "created": 24
+}
+```
+
+#### POST `'/api/questions/search'`
+- Executes a search of questions in the trivia app database and returns a list of matches based on the `searchTerm` key in the request body. 
+- Request Arguments: None
+- Returns: A list of all questions where the `question` attribute contains `searchTerm`.
+- Errors: 400 if request body does not contain `searchTerm`. 
+```
+Request:
+{
+  "searchTerm": "Tom Hanks"
+}
+Response:
+{
+  "questions": [
+    {
+      "answer": "Apollo 13", 
+      "category": 5, 
+      "difficulty": 4, 
+      "id": 2, 
+      "question": "What movie earned Tom Hanks his third straight Oscar nomination, in 1996?"
+    }
+  ], 
+  "success": true
+}
+```
+
+#### DELETE `'/api/questions/<question_id>'`
+- Deletes the question with id `question_id` from the trivia app database. 
+- Request Arguments: None
+- Returns: The id of the deleted question in the key `deleted` on success.
+- Errors: 404 if specified question does not exist. 
+```
+{
+  "deleted": 25,
+  "success": true
+}
+```
 
 ## Testing
 To run the tests, run
