@@ -125,7 +125,7 @@ def create_app(test_config=None):
       category = request_body['category']
       difficulty = request_body['difficulty']
 
-      if (type(question) != str) or (type(answer) != str) or (type(difficulty) != int):
+      if (type(question) != str) or (type(answer) != str) or (type(difficulty) != int) or (type(category) != int):
         raise TypeError
 
       new_question = Question(
@@ -143,7 +143,7 @@ def create_app(test_config=None):
     # Return a 400 error if any required fields are not present in the request body
     except KeyError:
       abort(400)
-    # Return a 422 error if question, answer, or difficulty are not the correct data types
+    # Return a 422 error if question, answer, category, or difficulty are not the correct data types
     except TypeError:
       abort(422)
     except:
