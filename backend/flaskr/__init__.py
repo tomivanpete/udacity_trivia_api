@@ -80,6 +80,7 @@ def create_app(test_config=None):
         'current_category': None,
         'total_questions': len(questions)
       })
+    # Return a 404 error for an invalid page number
     except IndexError:
       abort(404)
     except:
@@ -95,7 +96,7 @@ def create_app(test_config=None):
   @app.route('/api/questions/<int:question_id>', methods=['DELETE'])
   def delete_question(question_id):
     try:
-      question = Question.query.filter(Question.id == question_id)
+      question = Question.query.get(question_id)
       question.delete()
 
       return jsonify({
@@ -118,11 +119,14 @@ def create_app(test_config=None):
   @app.route('/api/questions', methods=['POST'])
   def create_question():
     try:
-      request_json = request.get_json()
-      question = request_json['question']
-      answer = request_json['answer']
-      category = request_json['category']
-      difficulty = request_json['difficulty']
+      request_body = request.get_json()
+      question = request_body['question']
+      answer = request_body['answer']
+      category = request_body['category']
+      difficulty = request_body['difficulty']
+
+      if (type(question) != str) or (type(answer) != str) or (type(difficulty) != int):
+        raise TypeError
 
       new_question = Question(
         question=question,
@@ -136,8 +140,14 @@ def create_app(test_config=None):
         'success': True,
         'created': new_question.id
       }), 201
-    except:
+    # Return a 400 error if any required fields are not present in the request body
+    except KeyError:
+      abort(400)
+    # Return a 422 error if question, answer, or difficulty are not the correct data types
+    except TypeError:
       abort(422)
+    except:
+      abort(500)
 
 
   '''
@@ -199,9 +209,9 @@ def create_app(test_config=None):
   @app.route('/api/quizzes', methods=['POST'])
   def play_quiz():
     try:
-      request_json = request.get_json()
-      previous_questions = request_json['previous_questions']
-      quiz_category_id = request_json['quiz_category']['id']
+      request_body = request.get_json()
+      previous_questions = request_body['previous_questions']
+      quiz_category_id = request_body['quiz_category']['id']
 
       # Category 0 should include questions from all existing categories
       if quiz_category_id == 0:

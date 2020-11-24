@@ -80,7 +80,6 @@ class QuizView extends Component {
   submitGuess = (event) => {
     event.preventDefault();
     const formatGuess = this.state.guess.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").toLowerCase()
-    //const formatGuess = this.state.guess.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase()
     let evaluate =  this.evaluateAnswer(formatGuess)
     this.setState({
       numCorrect: !evaluate ? this.state.numCorrect : this.state.numCorrect + 1,
@@ -132,15 +131,12 @@ class QuizView extends Component {
   }
 
   evaluateAnswer = (formatGuess) => {
-    //const formatGuess = this.state.guess.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase()
-    //const answerArray = this.state.currentQuestion.answer.toLowerCase().split(' ');
-    //return answerArray.includes(formatGuess)
+    // Updated to support multi-word answers
     const correctAnswer = this.state.currentQuestion.answer.toLowerCase()
     return correctAnswer == formatGuess
   }
 
   renderCorrectAnswer(){
-    //const formatGuess = this.state.guess.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase()
     const formatGuess = this.state.guess.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").toLowerCase()
     let evaluate =  this.evaluateAnswer(formatGuess)
     return(

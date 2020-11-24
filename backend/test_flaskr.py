@@ -50,111 +50,120 @@ class TriviaTestCase(unittest.TestCase):
     def test_get_categories(self):
         """ Test that GET for /api/categories endpoint returns a 200 and a list of categories """
         res = self.client().get('/api/categories')
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res_json['success'])
-        self.assertTrue(res_json['categories'])
+        self.assertTrue(res_body['success'])
+        self.assertTrue(res_body['categories'])
 
     def test_get_questions(self):
         """ Test that GET for /api/questions endpoint returns a 200 and a list of questions """
         res = self.client().get('/api/questions')
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res_json['success'])
-        self.assertTrue(res_json['questions'])
+        self.assertTrue(res_body['success'])
+        self.assertTrue(res_body['questions'])
 
     def test_create_question(self):
         """ Test that POST for /api/questions endpoint returns a 201 and creates a new question """
         res = self.client().post('/api/questions', json=self.new_question)
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 201)
-        self.assertTrue(res_json['success'])
-        self.assertTrue(res_json['created'])
+        self.assertTrue(res_body['success'])
+        self.assertTrue(res_body['created'])
         
-        new_question = Question.query.filter(Question.id == res_json['created']).one_or_none()
+        new_question = Question.query.filter(Question.id == res_body['created']).one_or_none()
         self.assertTrue(new_question)
 
     def test_delete_question(self):
-        """ Test that DELETE for /api/questions/1 endpoint returns a 200 and deletes a question """
+        """ Test that DELETE for /api/questions/<int:question_id> endpoint returns a 200 and deletes a question """
         res = self.client().get('/api/questions')
-        res_json = json.loads(res.data)
-        question_id = res_json['questions'][0]['id']
+        res_body = json.loads(res.data)
+        question_id = res_body['questions'][0]['id']
         
         res = self.client().delete('/api/questions/' + str(question_id))
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res_json['success'])
-        self.assertTrue(res_json['deleted'])
+        self.assertTrue(res_body['success'])
+        self.assertTrue(res_body['deleted'])
 
     def test_search_questions_with_results(self):
         """ Test that POST for /api/questions/search endpoint returns a 200 and a list of matching questions """
         res = self.client().post('/api/questions/search', json={'searchTerm': 'what'})
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res_json['success'])
-        self.assertTrue(len(res_json['questions']))
+        self.assertTrue(res_body['success'])
+        self.assertTrue(len(res_body['questions']))
 
     def test_search_questions_without_results(self):
         """ Test that POST for /api/questions/search endpoint returns a 200 and no matching questions """
         res = self.client().post('/api/questions/search', json={'searchTerm': 'string_with_no_results'})
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res_json['success'])
-        self.assertEqual(len(res_json['questions']), 0)
+        self.assertTrue(res_body['success'])
+        self.assertEqual(len(res_body['questions']), 0)
 
     def test_get_questions_by_category(self):
         """ Test that GET for /api/categories/1/questions endpoint returns a 200 list of matching questions """
         res = self.client().get('/api/categories/1/questions')
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res_json['success'])
-        self.assertTrue(res_json['questions'])
+        self.assertTrue(res_body['success'])
+        self.assertTrue(res_body['questions'])
 
     def test_play_quiz(self):
         """ Test playing the quiz for 5 questions. """
         for i in range(5):
             res = self.client().post('/api/quizzes', json=self.quiz_request)
-            res_json = json.loads(res.data)
+            res_body = json.loads(res.data)
 
             self.assertEqual(res.status_code, 200)
-            self.assertTrue(res_json['success'])
+            self.assertTrue(res_body['success'])
 
-            if res_json['question']:
-                self.quiz_request['previous_questions'].append(res_json['question']['id'])
+            if res_body['question']:
+                self.quiz_request['previous_questions'].append(res_body['question']['id'])
 
     def test_404_get_questions(self):
         """ Test that sending an invalid page to /api/questions should return a 404 error """
         res = self.client().get('/api/questions?page=1000')
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
-        self.assertFalse(res_json['success'])
-        self.assertEqual(res_json['message'], 'Not Found')
+        self.assertFalse(res_body['success'])
+        self.assertEqual(res_body['message'], 'Not Found')
+
+    def test_400_create_question(self):
+        """ Test sending a POST with incomplete question data should return a 400 error """
+        res = self.client().post('/api/questions', json={'question': 'This should fail'})
+        res_body = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(res_body['success'])
+        self.assertEqual(res_body['message'], 'Bad request')
 
     def test_422_create_question(self):
-        """ Test sending a POST with incomplete question data should return a 422 error """
-        res = self.client().post('/api/questions', json={'question': 'This should fail'})
-        res_json = json.loads(res.data)
+        """ Test sending a POST with incorrect data types should return a 422 error """
+        res = self.client().post('/api/questions', json={'question': 1, 'answer': 1, 'category': 1, 'difficulty': 'five'})
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 422)
-        self.assertFalse(res_json['success'])
-        self.assertEqual(res_json['message'], 'Unprocessable entity')
+        self.assertFalse(res_body['success'])
+        self.assertEqual(res_body['message'], 'Unprocessable entity')
 
     def test_405_post_category(self):
         """ Test sending a POST to /api/categories should return a 405 error """
         res = self.client().post('/api/categories', json={'type': 'New Category'})
-        res_json = json.loads(res.data)
+        res_body = json.loads(res.data)
 
         self.assertEqual(res.status_code, 405)
-        self.assertFalse(res_json['success'])
-        self.assertEqual(res_json['message'], 'Method not allowed')
+        self.assertFalse(res_body['success'])
+        self.assertEqual(res_body['message'], 'Method not allowed')
 
 
 # Make the tests conveniently executable
