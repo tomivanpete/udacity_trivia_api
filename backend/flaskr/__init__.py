@@ -163,7 +163,8 @@ def create_app(test_config=None):
   @app.route('/api/questions/search', methods=['POST'])
   def search_questions():
     try:
-      search_term = request.get_json().get('searchTerm', None)
+      request_body = request.get_json()
+      search_term = request_body['searchTerm']
       questions = Question.query.filter(Question.question.ilike('%'+search_term+'%'))
       formatted_questions = [question.format() for question in questions]
 

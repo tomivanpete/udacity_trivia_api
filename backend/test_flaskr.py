@@ -147,6 +147,15 @@ class TriviaTestCase(unittest.TestCase):
         self.assertFalse(res_body['success'])
         self.assertEqual(res_body['message'], 'Bad request')
 
+    def test_400_invalid_search(self):
+        """ Test sending a POST with incomplete an invalid search body should return a 400 error """
+        res = self.client().post('/api/questions/search', json={'search': 'This should fail'})
+        res_body = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(res_body['success'])
+        self.assertEqual(res_body['message'], 'Bad request')
+
     def test_422_create_question(self):
         """ Test sending a POST with incorrect data types should return a 422 error """
         res = self.client().post('/api/questions', json={'question': 1, 'answer': 1, 'category': 1, 'difficulty': 'five'})
